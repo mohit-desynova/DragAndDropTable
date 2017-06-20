@@ -109,7 +109,8 @@
 				var records = $filter('filter')(showList, time, true);
 				if(records.length){
 					console.log(records[0].shows[0]);
-					if(!Object.keys(records[0].shows[0]).length){
+					// if(!Object.keys(records[0].shows[0]).length){
+					if(!records[0].shows[0].episode_id){
 						records[0].shows.pop();
 						records[0].span.pop();
 					}
