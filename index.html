@@ -1,0 +1,210 @@
+<!doctype html>
+<html ng-app="app">
+<head>
+	<meta charset="utf-8">
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Drag Demo</title>
+	<style>
+		/* Prevent the text contents of draggable elements from being selectable. */
+		[draggable] {
+			-moz-user-select: none;
+			-khtml-user-select: none;
+			-webkit-user-select: none;
+			user-select: none;
+			/* Required to make elements draggable in old WebKit */
+			-khtml-user-drag: element;
+			-webkit-user-drag: element;
+		}
+		.column {
+			min-height: 30px;
+			height: 100%;
+			width: 150px;
+			text-align: center;
+			cursor: move;
+		}
+		.column header {
+			color: #fff;
+		}
+		.column.over {
+			/*border: 2px dashed #000;*/
+		}
+		td {
+			background-color: #ccc;
+		}
+	</style>
+</head>
+<body ng-controller="appCtrl">
+	<div>
+		<table>
+			<thead>
+				<th>Time</th>
+				<th>Shows</th>
+			</thead>
+			<tbody id="columns">
+				<tr ng-repeat="show in showList">
+					<td>{{show.time_of_tx}}</td>
+					<td id="{{$parent.$index}}-{{$index}}" ng-repeat="s in show.shows" rowspan="{{show.span[$index]}}" class="column" draggable="true">
+						<div>{{s.program_title}}</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+ 
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular.js"></script>
+	<script>
+
+	angular.module('app', [])
+	.controller('appCtrl', function($scope, $filter){
+		console.log('appCtrl loaded');
+		var vm = $scope;
+		vm.showList = [];
+		vm.extrasList = [];
+	
+		var dragSrcEl = null;
+
+		var generateScheduleList = function(){
+			var x = 30;
+			var tt = 0;
+			var ap = [' AM', ' PM'];
+			for (var i=0;tt<24*60; i++) {
+				var temp = {};
+				var times = null;
+				var hh = Math.floor(tt/60);
+				var mm = (tt%60);
+				times = parseInt(("0" + (hh % 12)).slice(-2)) + ':' + ("0" + mm).slice(-2) + ap[Math.floor(hh/12)];
+				tt = tt + x;
+				if(times.split(':')[0] == "0"){
+					times = '12:' + times.split(':')[1];
+				}
+				var temp = {};
+				temp.shows = [];
+				temp.shows.push({});
+				temp.time_of_tx = times;
+				temp.span = [];
+				temp.span.push(1);
+				vm.showList.push(temp);
+			}
+			vm.extrasList.push({});
+			// console.log(vm.showList);
+			getData();
+		};
+
+		generateScheduleList();
+
+		function getData(){
+			console.log('method called');
+			$.getJSON('data.json', function(data){
+				console.log(data);
+				fillSlots(vm.showList, data);
+			});
+		};
+
+		var fillSlots = function(showList, slotList){
+			for(var i = 0, l = slotList.length; i < l; i++){
+				var time = slotList[i].time_of_tx.toUpperCase();
+				var records = $filter('filter')(showList, time, true);
+				if(records.length){
+					if(!Object.keys(records[0].shows[0]).length){
+						records[0].shows.pop();
+						records[0].span.pop();
+					}
+					records[0].span.push(slotList[i].duration/30);
+					records[0].shows.push(slotList[i]);
+				}
+			}
+			vm.$apply();
+			initDrag();
+		};
+
+		function handleDragStart(e) {
+			this.style.opacity = '0.4';
+			console.log('handleDragStart event');
+			dragSrcEl = this;
+
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/html', this.innerHTML);
+		}
+
+		function handleDragOver(e) {
+			if (e.preventDefault) {
+				e.preventDefault();
+			}
+
+			e.dataTransfer.dropEffect = 'move';
+
+			return false;
+		}
+
+		function handleDragEnter(e) {
+			this.classList.add('over');
+		}
+
+		function handleDragLeave(e) {
+			this.classList.remove('over');
+		}
+
+		function handleDrop(e) {
+
+			if (e.stopPropagation) {
+				e.stopPropagation();
+			}
+
+			if (dragSrcEl != this) {
+				var sourceLocation = {
+					row: dragSrcEl.id.split('-')[0],
+					col: dragSrcEl.id.split('-')[1],
+				};
+
+				var destinationLocation = {
+					row: this.id.split('-')[0],
+					col: this.id.split('-')[1],
+				};
+				console.log('sourceLocation ---> ', sourceLocation);
+				console.log('destinationLocation ---> ', destinationLocation);
+				var record = vm.showList[sourceLocation.row].shows[sourceLocation.col];
+				
+				if(vm.showList[sourceLocation.row].shows[sourceLocation.col].length >= 1){
+					vm.showList[sourceLocation.row].shows.splice(sourceLocation.col, 1);
+					vm.showList[sourceLocation.row].span.splice(sourceLocation.col, 1);
+				}else{
+					vm.showList[sourceLocation.row].shows[sourceLocation.col] = {};
+					vm.showList[sourceLocation.row].span[sourceLocation.col] = 1;
+				}
+		
+				vm.showList[destinationLocation.row].shows[destinationLocation.col] = record;
+				vm.showList[destinationLocation.row].span[destinationLocation.col] = record.duration/30;
+				vm.$apply();
+				initDrag();
+				console.log(vm.showList);
+			}
+			return false;
+		}
+
+		function handleDragEnd(e) {
+			[].forEach.call(cols, function (col) {
+				col.classList.remove('over');
+			});
+		}
+
+		var cols = null;
+		function initDrag(){
+			cols = document.querySelectorAll('#columns .column');
+			[].forEach.call(cols, function(col) {
+				col.addEventListener('dragstart', handleDragStart, false);
+				col.addEventListener('dragenter', handleDragEnter, false)
+				col.addEventListener('dragover', handleDragOver, false);
+				col.addEventListener('dragleave', handleDragLeave, false);
+				col.addEventListener('drop', handleDrop, false);
+				col.addEventListener('dragend', handleDragEnd, false);
+			});
+		}
+	});
+	</script>
+
+	
+</body>
+</html>
