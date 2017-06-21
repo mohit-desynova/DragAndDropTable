@@ -5,6 +5,7 @@
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Drag Demo</title>
+	<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
 	<style>
 		/* Prevent the text contents of draggable elements from being selectable. */
 		[draggable] {
@@ -17,9 +18,7 @@
 			-webkit-user-drag: element;
 		}
 		.column {
-			min-height: 30px;
-			height: 100%;
-			width: 150px;
+			width: 100px;
 			text-align: center;
 			cursor: move;
 		}
@@ -27,43 +26,126 @@
 			color: #fff;
 		}
 		.column.over {
-			/*border: 2px dashed #000;*/
+			border: 2px dashed #000;
 		}
+
+		.program-schedular table { table-layout: fixed; }
+		.program-schedular table th {text-align: center; color: #777; background-color: #e0e0e0;}
+		.program-schedular table th, table td { overflow: hidden; }
+
 		td {
-			background-color: #ccc;
+			background-color: #eeeeee;
+			height: 40px;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+			overflow: hidden!important;
+			color: #777;
+		}
+		.show_30 {
+			background-color: #00a0dc;
+			color: #fff;
+		}
+		.show_60 {
+			background-color: #9975b9;
+			color: #fff;
+		}
+		.show_90 {
+			background-color: #dd5143;
+			color: #fff;
+		}
+		.show_120 {
+			background-color: #e68523;
+			color: #fff;
+		}
+		.show_150 {
+			background-color: #86888a;
+			color: #fff;
 		}
 	</style>
 </head>
-<body ng-controller="appCtrl">
-	<div>
-		<table>
-			<thead>
-				<th>Time</th>
-				<th>Shows</th>
-			</thead>
-			<tbody id="columns">
-				<tr ng-repeat="show in showList">
-					<td>{{show.time_of_tx}}</td>
-					<td id="{{$parent.$index}}-{{$index}}" ng-repeat="s in show.shows" rowspan="{{show.span[$index]}}" class="column" draggable="true">
-						<div>{{s.program_title}}</div>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-	</div>
-	<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
- 
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular.js"></script>
+<body ng-controller="appCtrl">
+	<div class="container-fluid program-schedular">
+		<div class="row">
+			<div class="col-sm-8">
+				<div style="background-color: #eee; overflow-x: scroll;">
+					<table class="table table-bordered text-center" style="margin-bottom: 0px;">
+						<thead>
+							<th style="width: 100px;">Time</th>
+							<th style="width: 100px;">Shows</th>
+							<th style="width: 100px;" ng-repeat="h in headersList"></th>
+						</thead>
+						<tbody class="columns">
+							<tr ng-repeat="show in showList">
+								<td>
+									<div style="position: relative;">
+										<!-- <div style="display: inline-block; background: white; padding-left: 5px; padding-right: 5px;">{{show.time_of_tx}}</div> -->
+										<div>{{show.time_of_tx}}</div>
+									</div>
+								</td>
+								<td id="0-{{$parent.$index}}-{{$index}}" ng-repeat="s in show.shows" rowspan="{{show.span[$index]}}" class="column show_{{s.duration}}" draggable="true">
+									<div>{{s.program_title}}</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<div class="col-sm-4">
+				<div style="overflow-x: scroll;" hl-sticky="">
+					<table class="table table-bordered" style="margin-bottom: 0px;">
+						<thead>
+							<th style="width: 20%;">30</th>
+							<th style="width: 20%;">60</th>
+							<th style="width: 20%;">90</th>
+							<th style="width: 20%;">120</th>
+							<th style="width: 20%;">150</th>
+						</thead>
+						<tbody class="columns">
+							<tr>
+								<td style="background-color: #00a0dc;"></td>
+								<td style="background-color: #9975b9;"></td>
+								<td style="background-color: #dd5143;"></td>
+								<td style="background-color: #e68523;"></td>
+								<td style="background-color: #86888a;"></td>
+							</tr>
+						</tbody>
+					</table>
+					<table class="table table-bordered" style="margin-bottom: 0px; margin-top: 15px;">
+						<thead>
+							<th style="width: 100%;">Extra</th>
+						</thead>
+						<tbody class="columns">
+							<tr ng-repeat="extra in extrasList track by $index">
+								<td id="1-{{$index}}-0" class="column show_{{extra.duration}}" draggable="true">{{extra.program_title}}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="bower_components/jquery/dist/jquery.min.js"></script>
+	<script src="bower_components/angular/angular.min.js"></script>
+	<script src="bower_components/angular-sticky/dist/angular-sticky.min.js"></script>
+	<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 	<script>
 
-	angular.module('app', [])
+	angular.module('app', ['hl.sticky'])
 	.controller('appCtrl', function($scope, $filter){
 		console.log('appCtrl loaded');
 		var vm = $scope;
 		vm.showList = [];
 		vm.extrasList = [];
-	
+		vm.headers = 0;
+		vm.headersList = [];
+		var tableTypes = {
+			schedule: 0,
+			extras: 1
+		};
+
 		var dragSrcEl = null;
 
 		var generateScheduleList = function(){
@@ -116,13 +198,19 @@
 					}
 					records[0].span.push(slotList[i].duration/30);
 					records[0].shows.push(slotList[i]);
+					if(records[0].shows.length > 1 && vm.headers < records[0].shows.length){
+						vm.headers++;
+						vm.headersList.push(vm.headers);
+					}
 				}
 			}
+			console.log(vm.headers);
 			vm.$apply();
 			initDrag();
 		};
 
 		function handleDragStart(e) {
+			console.log(this);
 			this.style.opacity = '0.4';
 			console.log('handleDragStart event');
 			dragSrcEl = this;
@@ -132,6 +220,7 @@
 		}
 
 		function handleDragOver(e) {
+			console.log('handleDragOver event');
 			if (e.preventDefault) {
 				e.preventDefault();
 			}
@@ -142,14 +231,17 @@
 		}
 
 		function handleDragEnter(e) {
+			console.log('handleDragEnter event');
 			this.classList.add('over');
 		}
 
 		function handleDragLeave(e) {
+			console.log('handleDragLeave event');
 			this.classList.remove('over');
 		}
 
 		function handleDrop(e) {
+			console.log('handleDrop event');
 
 			if (e.stopPropagation) {
 				e.stopPropagation();
@@ -157,37 +249,93 @@
 
 			if (dragSrcEl != this) {
 				var sourceLocation = {
-					row: dragSrcEl.id.split('-')[0],
-					col: dragSrcEl.id.split('-')[1],
+					table: dragSrcEl.id.split('-')[0],
+					row: dragSrcEl.id.split('-')[1],
+					col: dragSrcEl.id.split('-')[2],
 				};
 
 				var destinationLocation = {
-					row: this.id.split('-')[0],
-					col: this.id.split('-')[1],
+					table: this.id.split('-')[0],
+					row: this.id.split('-')[1],
+					col: this.id.split('-')[2],
 				};
 				console.log('sourceLocation ---> ', sourceLocation);
 				console.log('destinationLocation ---> ', destinationLocation);
-				var record = vm.showList[sourceLocation.row].shows[sourceLocation.col];
-				
-				// if(vm.showList[sourceLocation.row].shows[sourceLocation.col].length >= 1){
-				if(sourceLocation.col == 0){
-					vm.showList[sourceLocation.row].shows[sourceLocation.col] = {};
-					vm.showList[sourceLocation.row].span[sourceLocation.col] = 1;
+				// console.log(Object.keys(vm.showList[sourceLocation.row].shows[sourceLocation.col]).length);
+				// console.log(Object.keys(vm.showList[sourceLocation.row].shows[sourceLocation.col]).length <= 1);
+
+				if(destinationLocation.table == tableTypes.schedule){
+					// check drop is empty
+					if(Object.keys(vm.showList[destinationLocation.row].shows[destinationLocation.col]).length <= 1){
+						var record = null;
+						if(sourceLocation.table == tableTypes.schedule){
+							record = vm.showList[sourceLocation.row].shows[sourceLocation.col];
+							if(sourceLocation.col == 0){
+								vm.showList[sourceLocation.row].shows[sourceLocation.col] = {};
+								vm.showList[sourceLocation.row].span[sourceLocation.col] = 1;
+							}else{
+								vm.showList[sourceLocation.row].shows.splice(sourceLocation.col, 1);
+								vm.showList[sourceLocation.row].span.splice(sourceLocation.col, 1);
+							}
+						}else{
+							record = vm.extrasList[sourceLocation.row];
+							vm.extrasList.splice(sourceLocation.row, 1);
+						}
+						if(record){
+							vm.showList[destinationLocation.row].shows[destinationLocation.col] = record;
+							vm.showList[destinationLocation.row].span[destinationLocation.col] = record.duration/30;
+						}
+						vm.$apply();
+						initDrag();
+					}else{
+						dragSrcEl.style.opacity = '1';
+						console.log('You cant move here !!!');
+					}
 				}else{
-					vm.showList[sourceLocation.row].shows.splice(sourceLocation.col, 1);
-					vm.showList[sourceLocation.row].span.splice(sourceLocation.col, 1);
+					if(Object.keys(vm.extrasList[destinationLocation.row]).length <= 1){
+						var record = null;
+						if(sourceLocation.table == tableTypes.schedule){
+							record = vm.showList[sourceLocation.row].shows[sourceLocation.col];
+							if(sourceLocation.col == 0){
+								vm.showList[sourceLocation.row].shows[sourceLocation.col] = {};
+								vm.showList[sourceLocation.row].span[sourceLocation.col] = 1;
+							}else{
+								vm.showList[sourceLocation.row].shows.splice(sourceLocation.col, 1);
+								vm.showList[sourceLocation.row].span.splice(sourceLocation.col, 1);
+							}
+							vm.extrasList[destinationLocation.row] = record;
+							vm.extrasList.push({});
+						}else{
+							record = vm.extrasList[sourceLocation.row];
+							if (destinationLocation.row >= vm.extrasList.length) {
+								var k = destinationLocation.row - vm.extrasList.length;
+								while ((k--) + 1) {
+									vm.extrasList.push(undefined);
+								}
+							}
+							vm.extrasList.splice(destinationLocation.row, 0, vm.extrasList.splice(sourceLocation.row, 1)[0]);
+							console.log(vm.extrasList);
+						}
+						if(record){
+							if(vm.extrasList[destinationLocation.row]){
+							}else{
+								console.log('destinationLocation does not exist !!!');
+							}
+						}
+						vm.$apply();
+						initDrag();
+					}else{
+						dragSrcEl.style.opacity = '1';
+						console.log('You cant move here !!!');
+					}
 				}
-		
-				vm.showList[destinationLocation.row].shows[destinationLocation.col] = record;
-				vm.showList[destinationLocation.row].span[destinationLocation.col] = record.duration/30;
-				vm.$apply();
-				initDrag();
-				console.log(vm.showList);
 			}
 			return false;
 		}
 
 		function handleDragEnd(e) {
+			dragSrcEl.style.opacity = '1';
+			console.log('handleDragEnd event');
 			[].forEach.call(cols, function (col) {
 				col.classList.remove('over');
 			});
@@ -195,7 +343,7 @@
 
 		var cols = null;
 		function initDrag(){
-			cols = document.querySelectorAll('#columns .column');
+			cols = document.querySelectorAll('.columns .column');
 			[].forEach.call(cols, function(col) {
 				col.addEventListener('dragstart', handleDragStart, false);
 				col.addEventListener('dragenter', handleDragEnter, false)
@@ -207,7 +355,5 @@
 		}
 	});
 	</script>
-
-	
 </body>
 </html>

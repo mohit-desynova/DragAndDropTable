@@ -1,0 +1,22 @@
+{
+  "name": "DragAndDropTable",
+  "homepage": "https://github.com/mohit-desynova/DragAndDropTable",
+  "authors": [
+    "Mohit <mohitpatil546@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "angular": "^1.6.4",
+    "angular-sticky": "angular-sticky-plugin#^0.4.1"
+  }
+}
